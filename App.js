@@ -1,6 +1,4 @@
-// App.js
-
-import React, {useState, useRef, useEffect} from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -9,66 +7,80 @@ import {
   StatusBar,
 } from 'react-native';
 
-const App = () => {
-  const [running, setRunning] = useState(false);
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const intervalRef = useRef(null);
+const TicTacToe = () => {
+  const [board, setBoard] = useState(Array(9).fill(null));
+  const [currentPlayer, setCurrentPlayer] = useState('X');
+  const [winner, setWinner] = useState(null);
 
-  const startTimer = () => {
-    if (running) return;
+  const handlePress = index => {
+    if (board[index] || winner) return;
 
-    setRunning(true);
-    intervalRef.current = setInterval(() => {
-      setElapsedTime(prevTime => prevTime + 10);
-    }, 10);
+    const newBoard = board.slice();
+    newBoard[index] = currentPlayer;
+    setBoard(newBoard);
+
+    const newWinner = checkWinner(newBoard);
+    if (newWinner) {
+      setWinner(newWinner);
+    } else {
+      setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X');
+    }
   };
 
-  const pauseTimer = () => {
-    if (!running) return;
+  const checkWinner = board => {
+    const winningCombinations = [
+      [0, 1, 2],
+      [3, 4, 5],
+      [6, 7, 8],
+      [0, 3, 6],
+      [1, 4, 7],
+      [2, 5, 8],
+      [0, 4, 8],
+      [2, 4, 6],
+    ];
 
-    setRunning(false);
-    clearInterval(intervalRef.current);
+    for (let combination of winningCombinations) {
+      const [a, b, c] = combination;
+      if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+        return board[a];
+      }
+    }
+    return null;
   };
 
-  const resetTimer = () => {
-    setRunning(false);
-    setElapsedTime(0);
-    clearInterval(intervalRef.current);
+  const resetGame = () => {
+    setBoard(Array(9).fill(null));
+    setCurrentPlayer('X');
+    setWinner(null);
   };
 
-  const formatTime = time => {
-    const minutes = Math.floor(time / 60000);
-    const seconds = Math.floor((time % 60000) / 1000);
-    const milliseconds = Math.floor((time % 1000) / 10);
+  const renderSquare = index => {
+    const squareValue = board[index];
+    const squareStyle =
+      squareValue === 'X'
+        ? [styles.square, styles.xSquare]
+        : squareValue === 'O'
+        ? [styles.square, styles.oSquare]
+        : styles.square;
 
-    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(
-      2,
-      '0',
-    )}:${String(milliseconds).padStart(2, '0')}`;
+    return (
+      <TouchableOpacity style={squareStyle} onPress={() => handlePress(index)}>
+        <Text style={styles.squareText}>{squareValue}</Text>
+      </TouchableOpacity>
+    );
   };
-
-  useEffect(() => {
-    return () => clearInterval(intervalRef.current);
-  }, []);
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <Text style={styles.time}>{formatTime(elapsedTime)}</Text>
-      <View style={styles.buttonContainer}>
-        {!running ? (
-          <TouchableOpacity style={styles.buttonStart} onPress={startTimer}>
-            <Text style={styles.buttonText}>Start</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.buttonPause} onPress={pauseTimer}>
-            <Text style={styles.buttonText}>Pause</Text>
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity style={styles.buttonReset} onPress={resetTimer}>
-          <Text style={styles.buttonText}>Reset</Text>
-        </TouchableOpacity>
+      <Text style={styles.title}>Tic Tac Toe</Text>
+      <View style={styles.board}>
+        {board.map((_, index) => renderSquare(index))}
       </View>
+      {winner && <Text style={styles.winnerText}>Winner: {winner}</Text>}
+      <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
+        <Text style={styles.resetButtonText}>Reset Game</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -78,59 +90,77 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#1E1E1E', // Dark background for modern look
+    backgroundColor: '#282A36',
+    paddingHorizontal: 20,
   },
-  time: {
-    fontSize: 48,
+  title: {
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#FFFFFF', // White color for contrast
+    color: '#F8F8F2',
     marginBottom: 20,
   },
-  buttonContainer: {
+  board: {
+    width: 320,
+    height: 320,
     flexDirection: 'row',
-    marginTop: 20,
+    flexWrap: 'wrap',
+    borderRadius: 16,
+    backgroundColor: '#44475A',
+    padding: 5,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    justifyContent: 'center',
   },
-  buttonStart: {
-    backgroundColor: '#4CAF50', // Green color for Start
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+  square: {
+    width: '30%',
+    height: '30%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    margin: 4,
     borderRadius: 8,
-    marginHorizontal: 10,
-    elevation: 4, // Shadow effect
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowRadius: 3,
+    backgroundColor: '#6272A4',
   },
-  buttonPause: {
-    backgroundColor: '#FFC107', // Yellow color for Pause
+  xSquare: {
+    backgroundColor: '#FF5555', // Red for X
+  },
+  oSquare: {
+    backgroundColor: '#50FA7B', // Green for O
+  },
+  squareText: {
+    fontSize: 42,
+    fontWeight: 'bold',
+    color: '#F8F8F2',
+  },
+  winnerText: {
+    fontSize: 24,
+    color: '#50FA7B',
+    marginVertical: 20,
+  },
+  resetButton: {
+    marginTop: 65,
+    backgroundColor: '#b84cbe',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
-    marginHorizontal: 10,
     elevation: 4,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
     shadowRadius: 4,
   },
-  buttonReset: {
-    backgroundColor: '#F44336', // Red color for Reset
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    marginHorizontal: 10,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  buttonText: {
-    color: '#FFFFFF', // White text
+  resetButtonText: {
+    color: '#F8F8F2',
     fontSize: 18,
     fontWeight: '600',
   },
 });
 
-export default App;
+export default TicTacToe;
